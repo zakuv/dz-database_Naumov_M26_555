@@ -1,0 +1,33 @@
+[project]
+name = "dz-database-naumov-m26-555"
+version = "0.1.0"
+description = "Простая консольная база данных"
+authors = [
+    { name = "Mikhail Naumov", email = "mi-n@list.ru" }
+]
+requires-python = ">=3.14"
+dependencies = ["prompt (>=0.4.1,<0.5.0)"]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+packages = [
+    { include = "src" }
+]
+
+[project.scripts]
+project = "src.primitive_db.main:main"
+[dependency-groups]
+dev = [
+    "ruff (>=0.16.9,<0.17.0)"
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py314"
+exclude = [".venv", "dist", "__pycache__"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]

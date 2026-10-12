@@ -7,6 +7,21 @@
 запрашивают подтверждение удаления и показывают время операций.
 Результаты повторяющихся выборок кэшируются с помощью замыкания.
 
+## Демонстрация
+
+[![Демонстрация базы данных](https://asciinema.org/a/AaKBX208ZOPDbBkx.svg)](https://asciinema.org/a/AaKBX208ZOPDbBkx)
+
+Нажмите на превью, чтобы посмотреть запись. В ней показаны установка и запуск,
+создание таблицы, все CRUD-операции, фильтрация, проверка типов, замеры времени,
+подтверждение и отмена удаления.
+
+Исходная запись сохранена в [demos/database.cast](demos/database.cast).
+Если установлен CLI asciinema, её можно воспроизвести локально:
+
+```bash
+asciinema play demos/database.cast
+```
+
 ## Требования
 
 - Python 3.12 или новее; в `.python-version` указан Python 3.14.
@@ -16,7 +31,7 @@
 ## Установка и запуск
 
 ```bash
-git clone git@github.com:zakuv/dz-database_Naumov_M26_555.git
+git clone https://github.com/zakuv/dz-database_Naumov_M26_555.git
 cd dz-database_Naumov_M26_555
 make install
 make run
@@ -194,3 +209,11 @@ make publish
 `make publish` выполняет `uvx twine check dist/*`: проверяет метаданные сборки
 локально, без загрузки в PyPI. После сборки `make package-install` устанавливает
 wheel в окружение `.venv`.
+
+
+Для проверки установленного wheel после сборки:
+
+```bash
+make package-install
+.venv/bin/database
+```

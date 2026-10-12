@@ -64,3 +64,8 @@ def drop_table(metadata, table_name):
     del metadata[table_name]
     print(f'Таблица "{table_name}" успешно удалена.')
     return metadata
+
+
+def list_tables(metadata):
+    """Вернуть имена таблиц в алфавитном порядке."""
+    return sorted(metadata)

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
-from src.primitive_db.engine import welcome
+from src.primitive_db.engine import run
 
 
 def main():
-    welcome()
+    """Запустить консольную базу данных."""
+    run()
 
 
 if __name__ == "__main__":

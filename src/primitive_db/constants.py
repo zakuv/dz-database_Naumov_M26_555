@@ -7,6 +7,8 @@ DATA_DIR = "data"
 COMMAND_PROMPT = "Введите команду: "
 TABLE_COMMANDS = {"create_table", "drop_table", "list_tables"}
 CRUD_COMMANDS = {"insert", "select", "update", "delete", "info"}
+DROP_TABLE_ACTION = "удаление таблицы"
+DELETE_ROWS_ACTION = "удаление записей"
 HELP_TEXT = (
     "\n***База данных***\n\n"
     "Управление таблицами:\n"
@@ -23,4 +25,6 @@ HELP_TEXT = (
     "Общие команды:\n"
     "help - справочная информация\n"
     "exit - выйти\n"
+    "\nУдаление таблиц и записей требует подтверждения: y — выполнить, "
+    "другой ответ — отменить.\n"
 )

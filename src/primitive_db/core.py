@@ -1,12 +1,26 @@
-from primitive_db.constants import ID_COLUMN, ID_NAME, TYPE_CLASSES, VALID_TYPES
-from primitive_db.utils import load_table_data
+from primitive_db.constants import (
+    DELETE_ROWS_ACTION,
+    DROP_TABLE_ACTION,
+    ID_COLUMN,
+    ID_NAME,
+    TYPE_CLASSES,
+    VALID_TYPES,
+)
+from primitive_db.decorators import (
+    confirm_action,
+    create_cacher,
+    handle_db_errors,
+    log_time,
+)
+from primitive_db.utils import load_table_data, validate_table_name
+
+_select_cache = create_cacher()
 
 
+@handle_db_errors
 def create_table(metadata, table_name, columns):
     """Проверить структуру и добавить новую таблицу в метаданные."""
-    if not table_name.strip():
-        print("Некорректное значение: пустое имя таблицы. Попробуйте снова.")
-        return metadata
+    validate_table_name(table_name)
 
     if table_name in metadata:
         print(f'Ошибка: Таблица "{table_name}" уже существует.')
@@ -48,10 +62,13 @@ def create_table(metadata, table_name, columns):
 
     checked_columns.insert(0, ID_COLUMN)
     metadata[table_name] = {"columns": checked_columns}
+    _select_cache.clear()
 
     return metadata
 
 
+@handle_db_errors
+@confirm_action(DROP_TABLE_ACTION)
 def drop_table(metadata, table_name):
     """Удалить существующую таблицу из метаданных."""
     if table_name not in metadata:
@@ -59,14 +76,17 @@ def drop_table(metadata, table_name):
         return metadata
 
     del metadata[table_name]
+    _select_cache.clear()
     return metadata
 
 
+@handle_db_errors
 def list_tables(metadata):
     """Вернуть имена таблиц в алфавитном порядке."""
     return sorted(metadata)
 
 
+@handle_db_errors
 def get_table_schema(metadata, table_name):
     """Получить схему таблицы как словарь имён столбцов и типов Python."""
     if table_name not in metadata:
@@ -150,9 +170,13 @@ def _matches(row, where_clause):
     )
 
 
+@log_time
+@handle_db_errors
 def insert(metadata, table_name, values, table_data=None):
     """Добавить запись с новым ID и вернуть данные для последующего сохранения."""
     schema = get_table_schema(metadata, table_name)
+    if schema is None:
+        return None
     if table_data is None:
         table_data = load_table_data(table_name)
     _validate_rows(table_data, schema)
@@ -167,19 +191,51 @@ def insert(metadata, table_name, values, table_data=None):
     row = {ID_NAME: new_id}
     row.update(fields)
     table_data.append(row)
+    _select_cache.clear()
     return table_data
 
 
+def _freeze_fields(fields):
+    """Сформировать ключ по полям, различая int, str и bool."""
+    return tuple(
+        sorted((name, type(value).__name__, value) for name, value in fields.items())
+    )
+
+
+def _select_key(table_data, where_clause, schema):
+    """Учесть содержимое, условие и схему таблицы в ключе кэша."""
+    data_key = tuple(_freeze_fields(row) for row in table_data)
+    where_key = None if where_clause is None else _freeze_fields(where_clause)
+    schema_key = (
+        None
+        if schema is None
+        else tuple(
+            sorted((name, field_type.__name__) for name, field_type in schema.items())
+        )
+    )
+    return data_key, where_key, schema_key
+
+
+@log_time
+@handle_db_errors
 def select(table_data, where_clause=None, schema=None):
-    """Вернуть копии всех записей или только записей, подходящих под условие."""
+    """Кэшировать выборку и вернуть отдельные копии подходящих записей."""
     schema = _validate_rows(table_data, schema)
-    if where_clause is None:
-        return [row.copy() for row in table_data]
+    if where_clause is not None:
+        _validate_fields(where_clause, schema)
+    key = _select_key(table_data, where_clause, schema)
+    rows = _select_cache(
+        key,
+        lambda: [
+            row.copy()
+            for row in table_data
+            if where_clause is None or _matches(row, where_clause)
+        ],
+    )
+    return [row.copy() for row in rows]
 
-    _validate_fields(where_clause, schema)
-    return [row.copy() for row in table_data if _matches(row, where_clause)]
 
-
+@handle_db_errors
 def update(table_data, set_clause, where_clause, schema=None):
     """Обновить все подходящие записи после проверки полей и типов."""
     schema = _validate_rows(table_data, schema)
@@ -193,9 +249,12 @@ def update(table_data, set_clause, where_clause, schema=None):
     for row in table_data:
         if _matches(row, where_clause):
             row.update(set_clause)
+    _select_cache.clear()
     return table_data
 
 
+@handle_db_errors
+@confirm_action(DELETE_ROWS_ACTION)
 def delete(table_data, where_clause, schema=None):
     """Удалить все подходящие записи после проверки условия."""
     schema = _validate_rows(table_data, schema)
@@ -204,4 +263,5 @@ def delete(table_data, where_clause, schema=None):
         raise ValueError("Для удаления записей нужно непустое where.")
 
     table_data[:] = [row for row in table_data if not _matches(row, where_clause)]
+    _select_cache.clear()
     return table_data

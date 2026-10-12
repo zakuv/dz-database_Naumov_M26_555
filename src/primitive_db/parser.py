@@ -1,6 +1,8 @@
 import json
 import shlex
 
+from primitive_db.constants import TYPE_CLASSES
+
 
 def parse_value(text):
     """Преобразовать строковый литерал в str, int или bool."""
@@ -26,7 +28,7 @@ def parse_value(text):
             f"Некорректное значение: {text}. Строки заключайте в кавычки."
         ) from error
 
-    if type(value) not in (str, int, bool):
+    if type(value) not in TYPE_CLASSES.values():
         raise ValueError(f"Некорректное значение: {text}. Допустимы int, str, bool.")
     return value
 
@@ -182,7 +184,7 @@ def _parse_update(text, tokens):
         if token.lower() != "where":
             continue
         try:
-            set_clause = parse_set(text[tokens[2][2]:start])
+            set_clause = parse_set(text[tokens[2][2] : start])
             where_clause = parse_where(text[end:])
         except ValueError:
             continue
@@ -220,11 +222,11 @@ def parse_command(text):
 
     if command == "insert":
         _require_keyword(tokens, 3, "values")
-        result["values"] = parse_values(text[tokens[3][2]:])
+        result["values"] = parse_values(text[tokens[3][2] :])
     elif command == "select" and len(tokens) == 3:
         result["where_clause"] = None
     else:
         _require_keyword(tokens, 3, "where")
-        result["where_clause"] = parse_where(text[tokens[3][2]:])
+        result["where_clause"] = parse_where(text[tokens[3][2] :])
 
     return result

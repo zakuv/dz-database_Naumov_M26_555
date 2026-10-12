@@ -49,10 +49,6 @@ def create_table(metadata, table_name, columns):
     checked_columns.insert(0, ID_COLUMN)
     metadata[table_name] = {"columns": checked_columns}
 
-    print(
-        f'Таблица "{table_name}" успешно создана со столбцами: '
-        f'{", ".join(checked_columns)}'
-    )
     return metadata
 
 
@@ -63,7 +59,6 @@ def drop_table(metadata, table_name):
         return metadata
 
     del metadata[table_name]
-    print(f'Таблица "{table_name}" успешно удалена.')
     return metadata
 
 

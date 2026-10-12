@@ -22,21 +22,39 @@ def save_metadata(filepath, data):
     if not isinstance(data, dict):
         raise ValueError("Метаданные должны быть словарём.")
 
-    with open(filepath, "w", encoding="utf-8") as file:
-        json.dump(data, file, ensure_ascii=False, indent=4)
+    _save_json(filepath, data)
 
 
-def _table_filepath(table_name):
-    """Получить путь файла таблицы без вложенных каталогов в её имени."""
+def validate_table_name(table_name):
+    """Проверить имя таблицы перед обращением к файлам данных."""
     if (
         not isinstance(table_name, str)
         or not table_name.strip()
         or table_name in {".", ".."}
         or "/" in table_name
         or "\\" in table_name
+        or "\x00" in table_name
     ):
         raise ValueError("Имя таблицы должно быть непустым и без разделителей пути.")
+
+
+def _table_filepath(table_name):
+    """Получить путь файла записей для допустимого имени таблицы."""
+    validate_table_name(table_name)
     return os.path.join(DATA_DIR, f"{table_name}.json")
+
+
+def _save_json(filepath, data):
+    """Подготовить JSON и заменить файл только после успешной записи."""
+    text = json.dumps(data, ensure_ascii=False, indent=4)
+    temporary_path = f"{filepath}.tmp"
+    try:
+        with open(temporary_path, "w", encoding="utf-8") as file:
+            file.write(text + "\n")
+        os.replace(temporary_path, filepath)
+    finally:
+        if os.path.exists(temporary_path):
+            os.remove(temporary_path)
 
 
 def _validate_table_data(data):
@@ -64,5 +82,13 @@ def save_table_data(table_name, data):
     _validate_table_data(data)
     os.makedirs(DATA_DIR, exist_ok=True)
 
-    with open(filepath, "w", encoding="utf-8") as file:
-        json.dump(data, file, ensure_ascii=False, indent=4)
+    _save_json(filepath, data)
+
+
+def remove_table_data(table_name):
+    """Удалить файл записей таблицы, если он существует."""
+    filepath = _table_filepath(table_name)
+    try:
+        os.remove(filepath)
+    except FileNotFoundError:
+        pass

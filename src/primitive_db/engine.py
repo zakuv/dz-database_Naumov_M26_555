@@ -19,6 +19,7 @@ from primitive_db.core import (
     select,
     update,
 )
+from primitive_db.decorators import handle_db_errors
 from primitive_db.parser import parse_command
 from primitive_db.utils import (
     load_metadata,
@@ -48,6 +49,8 @@ def _execute_table_command(metadata, parsed):
     command = parsed["command"]
     if command == "list_tables":
         names = list_tables(metadata)
+        if names is None:
+            return
         if not names:
             print("Таблиц пока нет.")
         for name in names:
@@ -66,6 +69,9 @@ def _execute_table_command(metadata, parsed):
             columns = ", ".join(metadata[table_name]["columns"])
             print(f'Таблица "{table_name}" успешно создана со столбцами: {columns}')
     else:
+        if not existed_before:
+            print(f'Ошибка: Таблица "{table_name}" не существует.')
+            return
         result = drop_table(metadata, table_name)
         if result is not None and existed_before and table_name not in metadata:
             remove_table_data(table_name)
@@ -78,6 +84,8 @@ def _execute_crud_command(metadata, parsed):
     command = parsed["command"]
     table_name = parsed["table_name"]
     schema = get_table_schema(metadata, table_name)
+    if schema is None:
+        return
     table_data = load_table_data(table_name)
 
     if command == "insert":
@@ -97,6 +105,9 @@ def _execute_crud_command(metadata, parsed):
         affected = select(table_data, where_clause, schema=schema)
         if affected is None:
             return
+        if command == "delete" and not affected:
+            print("Подходящие записи не найдены.")
+            return
         if command == "update":
             result = update(table_data, parsed["set_clause"], where_clause, schema)
         else:
@@ -112,23 +123,22 @@ def _execute_crud_command(metadata, parsed):
             row_id = row[ID_NAME]
             if command == "update":
                 print(
-                    f'Запись с ID={row_id} в таблице "{table_name}" '
-                    "успешно обновлена."
+                    f'Запись с ID={row_id} в таблице "{table_name}" успешно обновлена.'
                 )
             else:
                 print(
-                    f'Запись с ID={row_id} успешно удалена '
-                    f'из таблицы "{table_name}".'
+                    f'Запись с ID={row_id} успешно удалена из таблицы "{table_name}".'
                 )
 
     elif command == "info":
         rows = select(table_data, schema=schema)
         if rows is not None:
             print(f"Таблица: {table_name}")
-            print(f'Столбцы: {", ".join(metadata[table_name]["columns"])}')
+            print(f"Столбцы: {', '.join(metadata[table_name]['columns'])}")
             print(f"Количество записей: {len(rows)}")
 
 
+@handle_db_errors
 def execute_command(metadata, parsed):
     """Выполнить разобранную команду; вернуть False для выхода."""
     command = parsed["command"]
@@ -145,14 +155,24 @@ def execute_command(metadata, parsed):
     return True
 
 
+@handle_db_errors
+def _load_current_metadata():
+    """Прочитать метаданные с общей обработкой ошибок базы данных."""
+    return load_metadata(META_FILE)
+
+
+@handle_db_errors
+def _parse_user_input(user_input):
+    """Разобрать команду с общей обработкой ошибок ввода."""
+    return parse_command(user_input)
+
+
 def run():
     """Запустить ввод команд с чтением актуальных метаданных в каждом цикле."""
     print_help()
     while True:
-        try:
-            metadata = load_metadata(META_FILE)
-        except (OSError, ValueError) as error:
-            print(f"Ошибка чтения метаданных: {error}")
+        metadata = _load_current_metadata()
+        if metadata is None:
             return
 
         try:
@@ -161,14 +181,6 @@ def run():
             print("\nРабота завершена.")
             return
 
-        try:
-            parsed = parse_command(user_input)
-            if parsed is not None and not execute_command(metadata, parsed):
-                return
-        except KeyError as error:
-            name = error.args[0]
-            print(f'Ошибка: Таблица или столбец "{name}" не существует.')
-        except ValueError as error:
-            print(f"Ошибка валидации: {error}")
-        except OSError as error:
-            print(f"Ошибка работы с файлами: {error}")
+        parsed = _parse_user_input(user_input)
+        if parsed is not None and execute_command(metadata, parsed) is False:
+            return

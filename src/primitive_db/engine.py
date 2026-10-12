@@ -2,9 +2,9 @@ import shlex
 
 import prompt
 
-from src.primitive_db.constants import META_FILE
-from src.primitive_db.core import create_table, drop_table, list_tables
-from src.primitive_db.utils import load_metadata, save_metadata
+from primitive_db.constants import META_FILE
+from primitive_db.core import create_table, drop_table, list_tables
+from primitive_db.utils import load_metadata, save_metadata
 
 
 def print_help():

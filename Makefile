@@ -1,20 +1,25 @@
+.PHONY: install run project lint format build publish package-install
+
 install:
-	poetry install
-
-project:
-	poetry run project
-
-build:
-	poetry build
-
-publish:
-	poetry publish --dry-run
-
-package-install:
-	python3 -m pip install dist/*.whl
-
-lint:
-	poetry run ruff check .
+	uv sync --locked
 
 run:
-	poetry run database
+	uv run database
+
+project:
+	uv run project
+
+lint:
+	uv run ruff check .
+
+format:
+	uv run ruff format .
+
+build:
+	uv build
+
+publish:
+	uvx twine check dist/*
+
+package-install:
+	uv pip install --reinstall dist/*.whl

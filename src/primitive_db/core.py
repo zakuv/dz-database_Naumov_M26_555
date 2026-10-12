@@ -1,4 +1,4 @@
-from src.primitive_db.constants import ID_COLUMN, VALID_TYPES
+from primitive_db.constants import ID_COLUMN, VALID_TYPES
 
 
 def create_table(metadata, table_name, columns):

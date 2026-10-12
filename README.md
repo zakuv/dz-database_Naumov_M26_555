@@ -9,7 +9,7 @@
 
 ## Демонстрация
 
-[![Демонстрация базы данных](https://asciinema.org/a/AaKBX208ZOPDbBkx.svg)](https://asciinema.org/a/AaKBX208ZOPDbBkx)
+[![Демонстрация базы данных](https://asciinema.org/a/v0dFl0AssSzbdLSP.svg)](https://asciinema.org/a/v0dFl0AssSzbdLSP)
 
 Нажмите на превью, чтобы посмотреть запись. В ней показаны установка и запуск,
 создание таблицы, все CRUD-операции, фильтрация, проверка типов, замеры времени,
